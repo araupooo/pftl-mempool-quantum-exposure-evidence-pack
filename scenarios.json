@@ -1,0 +1,113 @@
+{
+  "ledger_close_s": 3.5,
+  "notes": [
+    "All scenarios share the TxQ model constants from postfiatd TxQ.h at commit 0085a1ff: base fee level 256, minimum escalation multiplier 128000 (= baseLevel * 500), queue capacity max(2000, 20 ledgers * target), max 10 queued transactions per account, LastLedgerSequence buffer 2 ledgers.",
+    "recovery_seconds is the adversary's key-recovery time in seconds: a parameter of the adversary-capability model, NOT a measured quantity. 30 s is the mature-CRQC tier; 3.5 s is the advanced-CRQC tier (one ledger close); 28800 s (8 h) is the near-term tier from the Lux threat model Table 1 (Ed25519 key recovery, ~2,310 logical qubits, 1 us T-gate time).",
+    "fee_premium 50.0: the adversary's competing transaction pays fifty times the victim's fee level.",
+    "last_ledger_window is the LastLedgerSequence window in ledgers from broadcast. The fee-policy scenario tightens it to 5 ledgers and raises the minimum fee level to 512 (2x base).",
+    "signature_scheme ed25519 means the adversary can recover keys (Shor-vulnerable). ml-dsa-65 means signatures are quantum-resistant, so recovery never completes and the hijack rate is 0 by construction.",
+    "commit_reveal true means each value transfer is a commit transaction (hash only, no public key, no value) followed by a reveal bound to the validated commit; a forged reveal cannot match the commit, so the hijack rate is 0 by construction."
+  ],
+  "run_ledgers": 120,
+  "scenarios": [
+    {
+      "description": "Normal load, 20 tx/s, Ed25519 signatures, mature-CRQC adversary (30 s recovery).",
+      "name": "baseline",
+      "params": {
+        "arrival_rate_per_s": 20.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 30.0,
+        "signature_scheme": "ed25519"
+      }
+    },
+    {
+      "description": "High load, 80 tx/s, Ed25519 signatures, mature-CRQC adversary (30 s recovery). Queue builds, exposure stretches past the recovery time.",
+      "name": "congested",
+      "params": {
+        "arrival_rate_per_s": 80.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 30.0,
+        "signature_scheme": "ed25519"
+      }
+    },
+    {
+      "description": "High load, 40 value-transfers/s (80 tx/s on-chain: commit + reveal per transfer), commit-reveal mitigation, mature-CRQC adversary (30 s recovery).",
+      "name": "congested-commit-reveal",
+      "params": {
+        "arrival_rate_per_s": 40.0,
+        "commit_reveal": true,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 30.0,
+        "signature_scheme": "ed25519"
+      }
+    },
+    {
+      "description": "High load, 80 tx/s, fee/sequence-policy mitigation (LastLedgerSequence window 5 ledgers, minimum fee level 512), mature-CRQC adversary (30 s recovery).",
+      "name": "congested-fee-policy",
+      "params": {
+        "arrival_rate_per_s": 80.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 5,
+        "min_fee_level": 512,
+        "recovery_seconds": 30.0,
+        "signature_scheme": "ed25519"
+      }
+    },
+    {
+      "description": "High load, 80 tx/s, ML-DSA-65 signatures (quantum-resistant), mature-CRQC adversary (30 s recovery). Recovery never completes.",
+      "name": "congested-ml-dsa",
+      "params": {
+        "arrival_rate_per_s": 80.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 30.0,
+        "signature_scheme": "ml-dsa-65"
+      }
+    },
+    {
+      "description": "Normal load, 20 tx/s, Ed25519 signatures, near-term adversary (8 h recovery, Lux Table 1 estimate). Control: recovery cannot complete inside any mempool exposure window.",
+      "name": "near-term-control",
+      "params": {
+        "arrival_rate_per_s": 20.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 28800.0,
+        "signature_scheme": "ed25519"
+      }
+    },
+    {
+      "description": "High load, 80 tx/s, Ed25519 signatures, advanced-CRQC adversary (3.5 s recovery, one ledger close). Sensitivity case: recovery completes inside a single ledger.",
+      "name": "congested-fast-adversary",
+      "params": {
+        "arrival_rate_per_s": 80.0,
+        "commit_reveal": false,
+        "fee_premium": 50.0,
+        "last_ledger_window": 20,
+        "min_fee_level": 256,
+        "recovery_seconds": 3.5,
+        "signature_scheme": "ed25519"
+      }
+    }
+  ],
+  "seeds": [
+    1001,
+    1002,
+    1003,
+    1004,
+    1005
+  ],
+  "target_tx_per_ledger": 256
+}
